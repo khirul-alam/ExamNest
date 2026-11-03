@@ -1,0 +1,16 @@
+// backend/tsconfig.json
+{
+  "compilerOptions": {
+    // আধুনিক Node.js এর জন্য সেটিংস
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist",
+    "rootDir": "src",
+    // কড়া টাইপ চেক চালু
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}
