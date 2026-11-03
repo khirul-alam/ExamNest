@@ -1,26 +1,89 @@
+/* frontend/src/app/globals.css */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ক্লাস-ভিত্তিক ডার্ক মোড (html ট্যাগে "dark" ক্লাস থাকলে চালু হবে) */
+@custom-variant dark (&:where(.dark, .dark *));
 
+/* Tailwind-এ রঙ ও ফন্টের নাম নিবন্ধন (bg-primary, font-bengali ইত্যাদি ব্যবহারের জন্য) */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-inter), var(--font-hind), sans-serif;
+  --font-bengali: var(--font-hind), var(--font-inter), sans-serif;
+  --font-display: var(--font-roboto-slab), var(--font-hind), serif;
+  --font-mono: var(--font-jetbrains), monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* স্ক্রলিং নোটিশ বারের অ্যানিমেশন */
+@theme {
+  --animate-marquee: marquee 40s linear infinite;
+
+  @keyframes marquee {
+    0% {
+      transform: translateX(100%);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
   }
 }
 
+/* লাইট থিমের রঙ */
+:root {
+  --background: #f0f4f8;
+  --foreground: #0f1923;
+  --card: #ffffff;
+  --card-foreground: #0f1923;
+  --primary: #0d6e4f;
+  --primary-foreground: #ffffff;
+  --secondary: #1e3a5f;
+  --secondary-foreground: #ffffff;
+  --muted: #e8edf3;
+  --muted-foreground: #5a6a7a;
+  --accent: #d97706;
+  --accent-foreground: #ffffff;
+  --border: #d1dbe6;
+  --ring: #0d6e4f;
+}
+
+/* ডার্ক থিমের রঙ */
+.dark {
+  --background: #0c1520;
+  --foreground: #e8edf5;
+  --card: #13202f;
+  --card-foreground: #e8edf5;
+  --primary: #10b981;
+  --primary-foreground: #ffffff;
+  --secondary: #1e3a5f;
+  --secondary-foreground: #e8edf5;
+  --muted: #1a2a3a;
+  --muted-foreground: #8aa0b8;
+  --accent: #f59e0b;
+  --accent-foreground: #0f1923;
+  --border: #1e3050;
+  --ring: #10b981;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  transition: background-color 0.2s, color 0.2s;
 }
