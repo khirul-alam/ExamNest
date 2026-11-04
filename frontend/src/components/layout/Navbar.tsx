@@ -3,9 +3,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bell,
+  Bookmark,
   ChevronDown,
   LayoutDashboard,
   LogIn,
@@ -13,14 +14,24 @@ import {
   Menu,
   Moon,
   Search,
+  StickyNote,
   Sun,
   User,
   UserPlus,
   X,
 } from "lucide-react";
 import { baseLinks, memberLinks } from "@/lib/nav";
+import { demoAccount } from "@/lib/dashboard-data";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useAuthPreview } from "@/components/providers/AuthPreviewProvider";
+
+// প্রোফাইল ড্রপডাউনের লিংক
+const profileMenuLinks = [
+  { href: "/dashboard", label: "ড্যাশবোর্ড", icon: LayoutDashboard },
+  { href: "/profile", label: "প্রোফাইল", icon: User },
+  { href: "/bookmarks", label: "বুকমার্ক", icon: Bookmark },
+  { href: "/notes", label: "আমার নোট", icon: StickyNote },
+];
 
 export function Navbar() {
   const pathname = usePathname();
@@ -28,12 +39,40 @@ export function Navbar() {
   const { isLoggedIn, login, logout } = useAuthPreview();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const links = isLoggedIn ? memberLinks : baseLinks;
 
   // বর্তমান পেজের লিংক চিহ্নিত করার নিয়ম
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  // পেজ বদলালে খোলা মেনুগুলো বন্ধ হয়ে যাবে
+  useEffect(() => {
+    setMobileOpen(false);
+    setProfileOpen(false);
+  }, [pathname]);
+
+  // ড্রপডাউনের বাইরে ক্লিক করলে বা Esc চাপলে বন্ধ হবে
+  useEffect(() => {
+    if (!profileOpen) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileOpen(false);
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [profileOpen]);
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-card shadow-sm">
@@ -88,43 +127,42 @@ export function Navbar() {
                 <Bell size={18} />
                 <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
               </button>
-              <Link
-                href="/dashboard"
-                aria-label="ড্যাশবোর্ড"
-                className="hidden rounded-md p-2 text-muted-foreground hover:bg-muted sm:flex"
-              >
-                <LayoutDashboard size={18} />
-              </Link>
 
               {/* প্রোফাইল ড্রপডাউন */}
-              <div className="relative">
+              <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
                   className="flex items-center gap-2 rounded-md bg-muted px-3 py-1.5 text-sm font-medium"
                 >
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-                    র
+                    {demoAccount.name.charAt(0)}
                   </span>
-                  <span className="hidden sm:block">রাহিম</span>
+                  <span className="hidden max-w-[120px] truncate sm:block">
+                    {demoAccount.name}
+                  </span>
                   <ChevronDown size={14} />
                 </button>
+
                 {profileOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-card py-1 shadow-lg">
-                    <Link
-                      href="/profile"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted"
-                    >
-                      <User size={14} /> প্রোফাইল
-                    </Link>
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted"
-                    >
-                      <LayoutDashboard size={14} /> ড্যাশবোর্ড
-                    </Link>
+                  <div
+                    role="menu"
+                    className="absolute right-0 top-full z-50 mt-1 w-52 rounded-lg border border-border bg-card py-1 shadow-lg"
+                  >
+                    {profileMenuLinks.map(({ href, label, icon: Icon }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        role="menuitem"
+                        className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted"
+                      >
+                        <Icon size={14} /> {label}
+                      </Link>
+                    ))}
+                    <div className="my-1 border-t border-border" />
                     <button
+                      role="menuitem"
                       onClick={() => {
                         logout();
                         setProfileOpen(false);
@@ -177,6 +215,7 @@ export function Navbar() {
           <button
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="মেনু"
+            aria-expanded={mobileOpen}
             className="rounded-md p-2 hover:bg-muted lg:hidden"
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -192,7 +231,6 @@ export function Navbar() {
               <Link
                 key={href}
                 href={href}
-                onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${
                   isActive(href)
                     ? "bg-primary text-primary-foreground"
@@ -207,14 +245,12 @@ export function Navbar() {
               <div className="mt-2 flex gap-2 sm:hidden">
                 <Link
                   href="/login"
-                  onClick={() => setMobileOpen(false)}
                   className="flex-1 rounded-md border border-border py-2 text-center text-sm font-medium"
                 >
                   লগইন
                 </Link>
                 <Link
                   href="/register"
-                  onClick={() => setMobileOpen(false)}
                   className="flex-1 rounded-md bg-primary py-2 text-center text-sm font-medium text-primary-foreground"
                 >
                   রেজিস্ট্রেশন
