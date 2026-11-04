@@ -98,26 +98,3 @@ export const premiumFeatures = [
   "AI Chat Tutor",
   "Video Course",
 ];
-
-// ⚠️ নিচের দুটি তালিকা ডেমো ডাটা। পরে Admin Panel থেকে আসা আসল ডাটা দিয়ে বদলানো হবে।
-export const latestNews = [
-  { cat: "Bangladesh", title: "পদ্মা সেতুর টোল আদায় ৫০০ কোটি টাকা ছাড়িয়েছে", time: "২ ঘন্টা আগে" },
-  { cat: "International", title: "জাতিসংঘের নিরাপত্তা পরিষদের বৈঠকে বাংলাদেশ", time: "৫ ঘন্টা আগে" },
-  { cat: "Economy", title: "রেমিট্যান্স আয়ে নতুন রেকর্ড — ২.৮ বিলিয়ন ডলার", time: "৮ ঘন্টা আগে" },
-  { cat: "Science & Technology", title: "বঙ্গবন্ধু স্যাটেলাইট-২ উৎক্ষেপণের প্রস্তুতি চলছে", time: "১২ ঘন্টা আগে" },
-];
-
-export const latestJobs = [
-  { org: "বাংলাদেশ সিভিল সার্ভিস", type: "সরকারি", posts: "২০০০+", deadline: "৩০ আগস্ট ২০২৬", urgent: true },
-  { org: "সোনালী ব্যাংক লিমিটেড", type: "ব্যাংক", posts: "৩৫০", deadline: "১৫ সেপ্টেম্বর ২০২৬", urgent: false },
-  { org: "NTRCA", type: "NTRCA", posts: "১৫,০০০+", deadline: "২০ সেপ্টেম্বর ২০২৬", urgent: false },
-  { org: "প্রাথমিক শিক্ষা অধিদপ্তর", type: "সরকারি", posts: "৪০,০০০+", deadline: "১০ অক্টোবর ২০২৬", urgent: false },
-];
-
-export const categoryColors: Record<string, string> = {
-  Bangladesh: "#16a34a",
-  International: "#2563eb",
-  Economy: "#d97706",
-  "Science & Technology": "#0891b2",
-  Sports: "#7c3aed",
-};
