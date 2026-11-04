@@ -13,7 +13,7 @@ import { corporateRegisterSchema } from "@/lib/validation";
 import {
   CORPORATE_MIN_STUDENTS,
   CORPORATE_PRICE_PER_STUDENT,
-  calcCorporateTotal,
+  calcCorporateBreakdown,
   corporateDurations,
   formatTaka,
   toBanglaNumber,
@@ -52,7 +52,8 @@ export function CorporateRegisterForm({ defaultStudents, defaultMonths }: Props)
 
   const students = Number(values.students) || 0;
   const months = Number(values.months) || 1;
-  const total = calcCorporateTotal(students, months);
+  // মোট দাম, ছাড় ও ছাড়ের পরের দামের হিসাব
+  const bill = calcCorporateBreakdown(students, months);
   const validCount = students >= CORPORATE_MIN_STUDENTS;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -193,6 +194,9 @@ export function CorporateRegisterForm({ defaultStudents, defaultMonths }: Props)
               {corporateDurations.map((d) => (
                 <option key={d.months} value={d.months}>
                   {d.label}
+                  {d.discountPercent > 0
+                    ? ` (${toBanglaNumber(d.discountPercent)}% ছাড়)`
+                    : ""}
                 </option>
               ))}
             </select>
@@ -200,14 +204,25 @@ export function CorporateRegisterForm({ defaultStudents, defaultMonths }: Props)
         </div>
 
         <div className="rounded-xl bg-muted p-4">
-          <div className="text-sm text-muted-foreground">
-            {toBanglaNumber(students)} জন × {toBanglaNumber(months)} মাস ×{" "}
-            {formatTaka(CORPORATE_PRICE_PER_STUDENT)}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>
+              {toBanglaNumber(students)} জন × {toBanglaNumber(months)} মাস ×{" "}
+              {formatTaka(CORPORATE_PRICE_PER_STUDENT)}
+            </span>
+            {validCount && bill.discount > 0 && (
+              <span>{formatTaka(bill.subtotal)}</span>
+            )}
           </div>
+          {validCount && bill.discount > 0 && (
+            <div className="mt-1 flex items-center justify-between text-sm text-emerald-600 dark:text-emerald-400">
+              <span>ছাড় ({toBanglaNumber(bill.discountPercent)}%)</span>
+              <span>−{formatTaka(bill.discount)}</span>
+            </div>
+          )}
           <div className="mt-1 flex items-baseline justify-between">
             <span className="text-sm font-medium">মোট</span>
             <span className="font-display text-2xl font-bold text-primary">
-              {validCount ? formatTaka(total) : "—"}
+              {validCount ? formatTaka(bill.total) : "—"}
             </span>
           </div>
         </div>

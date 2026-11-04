@@ -6,9 +6,10 @@ import { useState } from "react";
 import { Building2, CheckCircle2, Crown, Gift } from "lucide-react";
 import { freeFeatures, premiumFeatures } from "@/lib/landing-data";
 import {
+  CORPORATE_LONG_TERM_DISCOUNT_PERCENT,
   CORPORATE_MIN_STUDENTS,
   CORPORATE_PRICE_PER_STUDENT,
-  calcCorporateTotal,
+  calcCorporateBreakdown,
   corporateDurations,
   corporateQuickCounts,
   formatTaka,
@@ -47,7 +48,8 @@ export function PricingSection() {
 
   const students = Number(studentsInput) || 0;
   const isBelowMin = students < CORPORATE_MIN_STUDENTS;
-  const total = calcCorporateTotal(students, months);
+  // মোট দাম, ছাড় ও ছাড়ের পরের দামের হিসাব
+  const bill = calcCorporateBreakdown(students, months);
 
   return (
     <section id="pricing" className="mx-auto max-w-5xl scroll-mt-20 px-4 py-16">
@@ -140,12 +142,13 @@ export function PricingSection() {
             <p className="mb-5 mt-1 text-sm text-muted-foreground">
               কোচিং সেন্টার বা প্রতিষ্ঠানের নামে অ্যাকাউন্ট খুলুন। প্রতি শিক্ষার্থী
               মাসে {formatTaka(CORPORATE_PRICE_PER_STUDENT)}, ন্যূনতম{" "}
-              {toBanglaNumber(CORPORATE_MIN_STUDENTS)} জন।
+              {toBanglaNumber(CORPORATE_MIN_STUDENTS)} জন। ২ বছর বা তার বেশি
+              মেয়াদে {toBanglaNumber(CORPORATE_LONG_TERM_DISCOUNT_PERCENT)}% ছাড়।
             </p>
 
             {/* মেয়াদ */}
             <div className="mb-1.5 text-sm font-medium">মেয়াদ</div>
-            <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
               {corporateDurations.map((d) => (
                 <button
                   key={d.months}
@@ -157,6 +160,11 @@ export function PricingSection() {
                   }`}
                 >
                   {d.label}
+                  {d.discountPercent > 0 && (
+                    <span className="ml-1 rounded bg-emerald-100 px-1 text-xs text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                      −{toBanglaNumber(d.discountPercent)}%
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -202,16 +210,27 @@ export function PricingSection() {
                   {toBanglaNumber(students)} জন × {toBanglaNumber(months)} মাস ×{" "}
                   {formatTaka(CORPORATE_PRICE_PER_STUDENT)}
                 </span>
+                {!isBelowMin && bill.discount > 0 && (
+                  <span>{formatTaka(bill.subtotal)}</span>
+                )}
               </div>
+              {!isBelowMin && bill.discount > 0 && (
+                <div className="mt-1 flex items-center justify-between text-sm text-emerald-600 dark:text-emerald-400">
+                  <span>ছাড় ({toBanglaNumber(bill.discountPercent)}%)</span>
+                  <span>−{formatTaka(bill.discount)}</span>
+                </div>
+              )}
               <div className="mt-1 flex items-baseline justify-between">
                 <span className="text-sm font-medium">মোট</span>
                 <span className="font-display text-2xl font-bold text-primary">
-                  {isBelowMin ? "—" : formatTaka(total)}
+                  {isBelowMin ? "—" : formatTaka(bill.total)}
                 </span>
               </div>
             </div>
 
-            <FeatureList items={premiumFeatures} />
+            <div className="mt-6">
+              <FeatureList items={premiumFeatures} />
+            </div>
 
             {isBelowMin ? (
               <span className="mt-6 inline-block cursor-not-allowed rounded-lg bg-muted px-6 py-2.5 text-sm font-medium text-muted-foreground">

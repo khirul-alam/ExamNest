@@ -8,7 +8,8 @@ import { toBanglaNumber } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "মডেল টেস্ট",
-  description: "BCS, Bank, NTRCA, Primary ও বিশ্ববিদ্যালয় ভর্তি পরীক্ষার মডেল টেস্ট",
+  description:
+    "BCS, Bank, NTRCA, Primary ও বিশ্ববিদ্যালয় ভর্তি পরীক্ষার মডেল টেস্ট",
 };
 
 export default function ModelTestPage() {
@@ -27,14 +28,21 @@ export default function ModelTestPage() {
       <div className="space-y-8">
         {categories.map((category) => (
           <section key={category}>
-            <h2 className="mb-3 font-display text-lg font-bold">{category} Model Test</h2>
+            <h2 className="mb-3 font-display text-lg font-bold">
+              {category} Model Test
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {modelTests
                 .filter((t) => t.category === category)
                 .map((test) => (
-                  <div key={test.id} className="flex flex-col rounded-xl border border-border bg-card p-5">
+                  <div
+                    key={test.id}
+                    className="flex flex-col rounded-xl border border-border bg-card p-5"
+                  >
                     <div className="mb-3 flex items-start justify-between gap-2">
-                      <h3 className="font-semibold leading-snug">{test.title}</h3>
+                      <h3 className="font-semibold leading-snug">
+                        {test.title}
+                      </h3>
                       {test.premium && (
                         <span className="flex shrink-0 items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-xs font-medium text-accent">
                           <Crown size={11} /> প্রিমিয়াম
@@ -45,7 +53,9 @@ export default function ModelTestPage() {
                     {/* Total Marks ও Syllabus Coverage */}
                     <div className="mb-4 rounded-lg bg-muted p-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Total Marks</span>
+                        <span className="text-muted-foreground">
+                          Total Marks
+                        </span>
                         <span className="font-mono text-lg font-bold text-primary">
                           {toBanglaNumber(test.questions * MARK_CORRECT)}
                         </span>
@@ -55,7 +65,9 @@ export default function ModelTestPage() {
                           <span className="flex items-center gap-1">
                             <BarChart2 size={12} /> Syllabus Coverage
                           </span>
-                          <span className="font-mono">{toBanglaNumber(test.syllabusCoverage)}%</span>
+                          <span className="font-mono">
+                            {toBanglaNumber(test.syllabusCoverage)}%
+                          </span>
                         </div>
                         <div className="h-1.5 overflow-hidden rounded-full bg-border">
                           <div
@@ -68,10 +80,12 @@ export default function ModelTestPage() {
 
                     <div className="mb-4 flex gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <FileText size={13} /> {toBanglaNumber(test.questions)} প্রশ্ন
+                        <FileText size={13} /> {toBanglaNumber(test.questions)}{" "}
+                        প্রশ্ন
                       </span>
                       <span className="flex items-center gap-1">
-                        <Clock size={13} /> {toBanglaNumber(test.durationMin)} মিনিট
+                        <Clock size={13} /> {toBanglaNumber(test.durationMin)}{" "}
+                        মিনিট
                       </span>
                     </div>
 
