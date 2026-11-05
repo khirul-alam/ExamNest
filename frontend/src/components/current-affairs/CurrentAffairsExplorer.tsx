@@ -1,8 +1,9 @@
 // frontend/src/components/current-affairs/CurrentAffairsExplorer.tsx
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import {
   categoryColors,
   currentAffairsCategories,
@@ -22,7 +23,9 @@ export function CurrentAffairsExplorer() {
       .filter((item) => {
         if (category !== "all" && item.category !== category) return false;
         if (onlyImportant && !item.important) return false;
-        if (term && !`${item.title} ${item.detail}`.toLowerCase().includes(term)) return false;
+        if (term && !`${item.title} ${item.summary} ${item.detail}`.toLowerCase().includes(term)) {
+          return false;
+        }
         return true;
       })
       // সবচেয়ে নতুন খবর আগে
@@ -101,12 +104,26 @@ export function CurrentAffairsExplorer() {
                     dateTime={item.date}
                     className="ml-auto font-mono text-xs text-muted-foreground"
                   >
-                    {formatBanglaDate(item.date)}
+                    প্রকাশ: {formatBanglaDate(item.date)}
                   </time>
                 </div>
-                <h2 className="mb-2 font-semibold">{item.title}</h2>
-                <p className="text-sm leading-relaxed text-muted-foreground">{item.detail}</p>
-                <p className="mt-3 text-xs text-muted-foreground">সূত্র: {item.source}</p>
+
+                <h2 className="mb-2 font-semibold">
+                  <Link href={`/current-affairs/${item.id}`} className="hover:text-primary">
+                    {item.title}
+                  </Link>
+                </h2>
+                <p className="text-sm leading-relaxed text-muted-foreground">{item.summary}</p>
+
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">সূত্র: {item.source}</span>
+                  <Link
+                    href={`/current-affairs/${item.id}`}
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                  >
+                    বিস্তারিত দেখুন <ArrowRight size={14} />
+                  </Link>
+                </div>
               </article>
             );
           })}

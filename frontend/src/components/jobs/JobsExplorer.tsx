@@ -1,23 +1,22 @@
 // frontend/src/components/jobs/JobsExplorer.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, Clock, Search } from "lucide-react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { ArrowRight, Search } from "lucide-react";
+import { ApplyButton } from "@/components/jobs/ApplyButton";
+import { DeadlineStatus } from "@/components/jobs/DeadlineStatus";
 import { daysUntil, formatBanglaDate } from "@/lib/format";
-import { jobCategories, jobItems } from "@/lib/jobs-data";
+import { getSafeApplyUrl, jobCategories, jobItems } from "@/lib/jobs-data";
 import { toBanglaNumber } from "@/lib/pricing";
+import { useToday } from "@/lib/useToday";
 
 export function JobsExplorer() {
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [showExpired, setShowExpired] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
-  // আজকের তারিখ ব্রাউজারে বসানো হয় (সার্ভারের সময়ের সাথে গোলমাল এড়াতে)
-  const [today, setToday] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setToday(new Date());
-  }, []);
+  // আজকের তারিখ ব্রাউজার থেকে (সার্ভারের সময়ের সাথে গোলমাল এড়াতে)
+  const today = useToday();
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -25,7 +24,7 @@ export function JobsExplorer() {
       .map((job) => ({ job, daysLeft: today ? daysUntil(job.deadline, today) : null }))
       .filter(({ job, daysLeft }) => {
         if (category !== "all" && job.category !== category) return false;
-        if (term && !job.org.toLowerCase().includes(term)) return false;
+        if (term && !`${job.org} ${job.summary}`.toLowerCase().includes(term)) return false;
         const expired = daysLeft !== null && daysLeft < 0;
         if (expired && !showExpired) return false;
         return true;
@@ -98,24 +97,20 @@ export function JobsExplorer() {
           {rows.map(({ job, daysLeft }) => {
             const expired = daysLeft !== null && daysLeft < 0;
             const urgent = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
-            const isOpen = openId === job.id;
-
-            let statusText = "";
-            if (daysLeft !== null) {
-              if (expired) statusText = "মেয়াদ শেষ";
-              else if (daysLeft === 0) statusText = "আজই শেষ দিন";
-              else statusText = `আর ${toBanglaNumber(daysLeft)} দিন বাকি`;
-            }
 
             return (
-              <div
+              <article
                 key={job.id}
                 className={`rounded-xl border border-border bg-card p-4 ${expired ? "opacity-60" : ""}`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="mb-1 flex flex-wrap items-center gap-2">
-                      <h2 className="font-semibold">{job.org}</h2>
+                      <h2 className="font-semibold">
+                        <Link href={`/job-circular/${job.id}`} className="hover:text-primary">
+                          {job.org}
+                        </Link>
+                      </h2>
                       {urgent && (
                         <span className="rounded bg-red-600 px-2 py-0.5 text-xs font-medium text-white">
                           জরুরি
@@ -140,45 +135,26 @@ export function JobsExplorer() {
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <div className="flex items-center justify-end gap-1 font-mono text-xs text-muted-foreground">
-                      <Clock size={11} /> {formatBanglaDate(job.deadline)}
-                    </div>
-                    {statusText && !expired && (
-                      <p className={`mt-0.5 text-xs ${urgent ? "text-red-600" : "text-muted-foreground"}`}>
-                        {statusText}
-                      </p>
-                    )}
+                  <div className="sm:text-right">
+                    <DeadlineStatus deadline={job.deadline} className="sm:justify-end" />
+                    <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                      প্রকাশ: {formatBanglaDate(job.publishedAt)}
+                    </p>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setOpenId(isOpen ? null : job.id)}
-                  aria-expanded={isOpen}
-                  className="mt-3 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                >
-                  বিস্তারিত দেখুন {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                </button>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{job.summary}</p>
 
-                {isOpen && (
-                  <dl className="mt-3 space-y-1.5 rounded-lg bg-muted px-3 py-2.5 text-xs">
-                    <div>
-                      <dt className="inline font-semibold">প্রকাশের তারিখ: </dt>
-                      <dd className="inline text-muted-foreground">
-                        {formatBanglaDate(job.publishedAt)}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="inline font-semibold">যোগ্যতা: </dt>
-                      <dd className="inline text-muted-foreground">{job.qualification}</dd>
-                    </div>
-                    <div>
-                      <dt className="inline font-semibold">আবেদন পদ্ধতি: </dt>
-                      <dd className="inline text-muted-foreground">{job.applyInfo}</dd>
-                    </div>
-                  </dl>
-                )}
-              </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/job-circular/${job.id}`}
+                    className="inline-flex items-center justify-center gap-1 rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+                  >
+                    বিস্তারিত দেখুন <ArrowRight size={13} />
+                  </Link>
+                  <ApplyButton applyUrl={getSafeApplyUrl(job)} deadline={job.deadline} />
+                </div>
+              </article>
             );
           })}
         </div>
