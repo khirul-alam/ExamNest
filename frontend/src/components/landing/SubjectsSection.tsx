@@ -1,7 +1,9 @@
 // frontend/src/components/landing/SubjectsSection.tsx
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { subjects } from "@/lib/landing-data";
+import { toBanglaNumber } from "@/lib/pricing";
+import { getSubjectStats } from "@/lib/subject-stats";
+import { allSubjects } from "@/lib/subjects-data";
 
 export function SubjectsSection() {
   return (
@@ -24,24 +26,82 @@ export function SubjectsSection() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {subjects.map((subject) => (
-            <Link
-              key={subject.slug}
-              href={`/subjects/${subject.slug}`}
-              className="group rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
-            >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {allSubjects.map((subject) => {
+            const stats = getSubjectStats(subject);
+            const hasContent = stats.topics > 0;
+
+            // কার্ডের তিনটি সংখ্যা
+            const items = [
+              { label: "অধ্যায়", value: stats.chapters },
+              { label: "টপিক", value: stats.topics },
+              { label: "MCQ", value: stats.mcq },
+            ];
+
+            return (
               <div
-                className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg text-2xl"
-                style={{ backgroundColor: `${subject.color}1a` }}
+                key={subject.slug}
+                className="flex flex-col rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-md"
               >
-                {subject.icon}
+                <div
+                  className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg text-2xl"
+                  style={{ backgroundColor: `${subject.color}1a` }}
+                >
+                  {subject.icon}
+                </div>
+
+                <h3 className="mb-3 text-sm font-semibold leading-snug">
+                  <Link
+                    href={`/subjects/${subject.slug}`}
+                    className="hover:text-primary"
+                  >
+                    {subject.name}
+                  </Link>
+                </h3>
+
+                {hasContent ? (
+                  <dl className="mb-4 grid grid-cols-3 gap-2">
+                    {items.map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex flex-col-reverse rounded-lg bg-muted px-1 py-2 text-center"
+                      >
+                        <dt className="text-xs text-muted-foreground">
+                          {item.label}
+                        </dt>
+                        <dd
+                          className="font-mono text-sm font-bold"
+                          style={{ color: subject.color }}
+                        >
+                          {toBanglaNumber(item.value)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="mb-4 rounded-lg bg-muted px-2 py-3 text-center text-xs text-muted-foreground">
+                    শীঘ্রই আসছে
+                  </p>
+                )}
+
+                {stats.startHref ? (
+                  <Link
+                    href={stats.startHref}
+                    className="mt-auto flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                  >
+                    পড়া শুরু করুন <ArrowRight size={14} />
+                  </Link>
+                ) : (
+                  <span
+                    aria-disabled="true"
+                    className="mt-auto flex cursor-not-allowed items-center justify-center rounded-lg bg-muted px-3 py-2 text-sm font-medium text-muted-foreground"
+                  >
+                    পড়া শুরু করুন
+                  </span>
+                )}
               </div>
-              <h3 className="text-sm font-semibold leading-snug group-hover:text-primary">
-                {subject.name}
-              </h3>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

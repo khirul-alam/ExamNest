@@ -1,9 +1,10 @@
 // frontend/src/app/subjects/page.tsx
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import { allSubjects, countTopics } from "@/lib/subjects-data";
+import { ArrowRight } from "lucide-react";
 import { toBanglaNumber } from "@/lib/pricing";
+import { getSubjectStats } from "@/lib/subject-stats";
+import { allSubjects } from "@/lib/subjects-data";
 
 export const metadata: Metadata = {
   title: "বিষয়সমূহ",
@@ -20,12 +21,20 @@ export default function SubjectsPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {allSubjects.map((subject) => {
-          const topics = countTopics(subject);
+          const stats = getSubjectStats(subject);
+          const hasContent = stats.topics > 0;
+
+          // কার্ডের তিনটি সংখ্যা (Landing পেজের সাথে একই হিসাব)
+          const items = [
+            { label: "অধ্যায়", value: stats.chapters },
+            { label: "টপিক", value: stats.topics },
+            { label: "MCQ", value: stats.mcq },
+          ];
+
           return (
-            <Link
+            <div
               key={subject.slug}
-              href={`/subjects/${subject.slug}`}
-              className="group rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+              className="flex flex-col rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-md"
             >
               <div
                 className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg text-3xl"
@@ -33,20 +42,55 @@ export default function SubjectsPage() {
               >
                 {subject.icon}
               </div>
-              <h2 className="mb-3 font-semibold leading-snug group-hover:text-primary">
-                {subject.name}
+
+              <h2 className="mb-4 font-semibold leading-snug">
+                <Link
+                  href={`/subjects/${subject.slug}`}
+                  className="hover:text-primary"
+                >
+                  {subject.name}
+                </Link>
               </h2>
-              <div className="flex items-center justify-between font-mono text-xs text-muted-foreground">
-                <span>
-                  {topics > 0
-                    ? `${toBanglaNumber(subject.chapters.length)} অধ্যায় · ${toBanglaNumber(topics)} টপিক`
-                    : "শীঘ্রই আসছে"}
+
+              {hasContent ? (
+                <dl className="mb-4 grid grid-cols-3 gap-2">
+                  {items.map((item) => (
+                    <div
+                      key={item.label}
+                      className="flex flex-col-reverse rounded-lg bg-muted px-1 py-2.5 text-center"
+                    >
+                      <dt className="text-xs text-muted-foreground">{item.label}</dt>
+                      <dd
+                        className="font-mono text-base font-bold"
+                        style={{ color: subject.color }}
+                      >
+                        {toBanglaNumber(item.value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <p className="mb-4 rounded-lg bg-muted px-2 py-3.5 text-center text-xs text-muted-foreground">
+                  শীঘ্রই আসছে
+                </p>
+              )}
+
+              {stats.startHref ? (
+                <Link
+                  href={stats.startHref}
+                  className="mt-auto flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+                >
+                  পড়া শুরু করুন <ArrowRight size={14} />
+                </Link>
+              ) : (
+                <span
+                  aria-disabled="true"
+                  className="mt-auto flex cursor-not-allowed items-center justify-center rounded-lg bg-muted px-3 py-2 text-sm font-medium text-muted-foreground"
+                >
+                  পড়া শুরু করুন
                 </span>
-                <span className="flex items-center gap-1 text-primary">
-                  পড়ুন <ChevronRight size={12} />
-                </span>
-              </div>
-            </Link>
+              )}
+            </div>
           );
         })}
       </div>
