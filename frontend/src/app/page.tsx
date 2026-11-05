@@ -1,5 +1,6 @@
 // frontend/src/app/page.tsx
 import { HeroSection } from "@/components/landing/HeroSection";
+import { QuickAccessSection } from "@/components/landing/QuickAccessSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { SubjectsSection } from "@/components/landing/SubjectsSection";
 import { PricingSection } from "@/components/landing/PricingSection";
@@ -10,6 +11,7 @@ export default function HomePage() {
   return (
     <>
       <HeroSection />
+      <QuickAccessSection />
       <FeaturesSection />
       <SubjectsSection />
       <PricingSection />
