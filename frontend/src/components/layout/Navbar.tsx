@@ -86,19 +86,20 @@ export function Navbar() {
             <div className="font-display text-sm font-bold leading-tight text-primary">
               ExamNest
             </div>
-            <div className="text-xs leading-tight text-muted-foreground">
+            {/* জায়গা বাঁচাতে ছোট লেখাটি শুধু খুব বড় স্ক্রিনে দেখানো হয় */}
+            <div className="hidden text-xs leading-tight text-muted-foreground 2xl:block">
               BCS & Job Preparation
             </div>
           </div>
         </Link>
 
-        {/* ডেস্কটপ মেনু */}
-        <div className="hidden items-center gap-1 lg:flex">
+        {/* ডেস্কটপ মেনু (১২৮০px থেকে) */}
+        <div className="hidden items-center gap-0.5 xl:flex">
           {links.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium transition-colors ${
                 isActive(href)
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground hover:bg-muted"
@@ -211,21 +212,21 @@ export function Navbar() {
             </button>
           )}
 
-          {/* মোবাইল মেনু বাটন */}
+          {/* মোবাইল ও ট্যাবলেট মেনু বাটন (১২৮০px-এর নিচে) */}
           <button
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="মেনু"
             aria-expanded={mobileOpen}
-            className="rounded-md p-2 hover:bg-muted lg:hidden"
+            className="rounded-md p-2 hover:bg-muted xl:hidden"
           >
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
 
-      {/* মোবাইল মেনু */}
+      {/* মোবাইল ও ট্যাবলেট মেনু */}
       {mobileOpen && (
-        <div className="border-t border-border bg-card px-4 py-3 lg:hidden">
+        <div className="border-t border-border bg-card px-4 py-3 xl:hidden">
           <div className="flex flex-col gap-1">
             {links.map(({ href, label, icon: Icon }) => (
               <Link

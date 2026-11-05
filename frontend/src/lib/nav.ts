@@ -6,6 +6,7 @@ import {
   FileText,
   Home,
   Star,
+  Tag,
   Trophy,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +25,7 @@ export const baseLinks: NavLink[] = [
   { href: "/previous-questions", label: "বিগত প্রশ্ন", icon: Clock },
   { href: "/current-affairs", label: "কারেন্ট অ্যাফেয়ার্স", icon: Star },
   { href: "/job-circular", label: "চাকরির বিজ্ঞপ্তি", icon: Briefcase },
+  { href: "/pricing", label: "প্রাইসিং", icon: Tag },
 ];
 
 // শুধু লগইন করা ব্যবহারকারীর জন্য অতিরিক্ত লিংক
