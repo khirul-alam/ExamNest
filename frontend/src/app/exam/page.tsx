@@ -15,11 +15,17 @@ type Props = {
     mode?: string;
     subject?: string;
     topic?: string;
+    resume?: string;
   }>;
 };
 
 export default async function ExamPage({ searchParams }: Props) {
   const params = await searchParams;
+
+  // ?resume=1 হলে আগে থেকে তৈরি ও সংরক্ষিত পরীক্ষা (কাস্টম টেস্ট, আবার দিন, প্রস্তাবিত অনুশীলন) সরাসরি চালু হয়
+  if (params.resume === "1") {
+    return <ExamRunner key="resume" title="চলমান পরীক্ষা" mode="practice" autoResume />;
+  }
 
   // ?test=bcs-model-1 হলে নির্দিষ্ট মডেল টেস্ট (সময় ও প্রশ্ন সংখ্যা নির্দিষ্ট)
   if (params.test) {

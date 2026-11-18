@@ -9,6 +9,7 @@ import { ExamRunning } from "./ExamRunning";
 import { ExamSetup } from "./ExamSetup";
 import { enterFullscreen, leaveFullscreen, useExamGuards } from "./useExamGuards";
 import { useAuthPreview } from "@/components/providers/AuthPreviewProvider";
+import { recordAttempt } from "@/lib/attempts";
 import {
   clearSession,
   createSession,
@@ -30,9 +31,11 @@ type Props = {
   subject?: string;
   topic?: string;
   preset?: { durationMin: number; questionCount: number };
+  // true হলে সংরক্ষিত পরীক্ষা জিজ্ঞাসা ছাড়াই সরাসরি চালু হয়
+  autoResume?: boolean;
 };
 
-export function ExamRunner({ title, mode, subject, topic, preset }: Props) {
+export function ExamRunner({ title, mode, subject, topic, preset, autoResume = false }: Props) {
   const { isLoggedIn, isReady } = useAuthPreview();
 
   const [phase, setPhase] = useState<Phase>("loading");
@@ -48,26 +51,38 @@ export function ExamRunner({ title, mode, subject, topic, preset }: Props) {
     sessionRef.current = session;
   }, [session]);
 
-  // শুরুতে লগইন ও অসমাপ্ত পরীক্ষা যাচাই
+  // শুরুর কাজ একবারই হবে (লগইন ও অসমাপ্ত পরীক্ষা যাচাই)
+  const initialized = useRef(false);
   useEffect(() => {
     if (!isReady) return;
     if (!isLoggedIn) {
-      setPhase((prev) => (prev === "loading" || prev === "setup" ? "gate" : prev));
+      if (!initialized.current) setPhase("gate");
       return;
     }
+    if (initialized.current) return;
+    initialized.current = true;
+
     const stored = loadSession();
     setSaved(stored);
-    setPhase((prev) => (prev === "loading" || prev === "gate" ? (stored ? "resume" : "setup") : prev));
-  }, [isReady, isLoggedIn]);
+    if (stored && autoResume) {
+      setSession(stored);
+      setPhase("running");
+    } else {
+      setPhase(stored ? "resume" : "setup");
+    }
+  }, [isReady, isLoggedIn, autoResume]);
 
-  // পরীক্ষা জমা দেওয়া
+  // পরীক্ষা জমা দেওয়া এবং ফলাফল সংরক্ষণ
   const submit = useCallback((reason: FinishReason) => {
     const current = sessionRef.current;
     if (!current) return;
     sessionRef.current = null;
+
+    const finishedAt = Date.now();
+    recordAttempt({ session: current, reason, finishedAt });
     clearSession();
     void leaveFullscreen();
-    setFinish({ session: current, reason, finishedAt: Date.now() });
+    setFinish({ session: current, reason, finishedAt });
     setSession(null);
     setPhase("result");
   }, []);
