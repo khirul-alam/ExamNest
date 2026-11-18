@@ -7,7 +7,7 @@ import {
   Target,
   type LucideIcon,
 } from "lucide-react";
-import { modelTests, questionPool } from "@/lib/exam-data";
+import { questionPool } from "@/lib/exam-data";
 import { formatBanglaDate } from "@/lib/format";
 import { jobItems } from "@/lib/jobs-data";
 import { previousQuestions } from "@/lib/previous-questions-data";
@@ -28,7 +28,7 @@ const latestJobDate = jobItems.map((job) => job.publishedAt).sort().reverse()[0]
 
 const totalTopics = allSubjects.reduce((sum, subject) => sum + countTopics(subject), 0);
 
-// প্রতিটি ছোট তথ্য আসল ডাটা ফাইল থেকে গোনা, তাই ডাটা বদলালে নিজে বদলাবে
+// ডাটা বদলালে সংখ্যাগুলো নিজে বদলাবে
 export const quickAccessItems: QuickAccessItem[] = [
   {
     href: "/subjects",
@@ -49,7 +49,7 @@ export const quickAccessItems: QuickAccessItem[] = [
   {
     href: "/model-test",
     label: "মডেল টেস্ট দিন",
-    hint: `${toBanglaNumber(modelTests.length)}টি মডেল টেস্ট`,
+    hint: "নিজের টেস্ট বানান",
     icon: FileText,
     color: "#7c3aed",
     requiresLogin: true,

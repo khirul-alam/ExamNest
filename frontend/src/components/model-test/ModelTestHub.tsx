@@ -4,7 +4,6 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { Loader2, Lock } from "lucide-react";
-import { AvailableModelTests } from "./AvailableModelTests";
 import { CustomTestBuilder } from "./CustomTestBuilder";
 import { OverallSummary } from "./OverallSummary";
 import { RecentHistory } from "./RecentHistory";
@@ -59,6 +58,9 @@ export function ModelTestHub() {
 
   const showAnalytics = isReady && isLoggedIn && ready;
   const isGuest = isReady && !isLoggedIn;
+
+  // লগইন ছাড়া ভিজিটর শুধু কাস্টম টেস্ট দেখেন, তাই সেটিই "০১" হয়
+  const customNumber = showAnalytics ? "০৪" : "০১";
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
@@ -126,7 +128,7 @@ export function ModelTestHub() {
 
         {/* কাস্টম মডেল টেস্ট (সবার জন্য দৃশ্যমান, শুরু করতে লগইন লাগে) */}
         <section>
-          <SectionTitle number="০৪" title="কাস্টম মডেল টেস্ট" />
+          <SectionTitle number={customNumber} title="কাস্টম মডেল টেস্ট" />
           <CustomTestBuilder history={history} isLoggedIn={isLoggedIn} isReady={isReady} />
         </section>
 
@@ -147,15 +149,6 @@ export function ModelTestHub() {
             </section>
           </>
         )}
-
-        <section>
-          <SectionTitle
-            number={showAnalytics ? "০৭" : "০৫"}
-            title="উপলব্ধ মডেল টেস্ট"
-            subtitle="BCS, Bank, NTRCA, Primary ও বিশ্ববিদ্যালয় ভর্তি (ডেমো তালিকা)"
-          />
-          <AvailableModelTests />
-        </section>
       </div>
     </div>
   );
