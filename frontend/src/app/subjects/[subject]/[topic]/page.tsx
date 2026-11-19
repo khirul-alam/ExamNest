@@ -1,6 +1,7 @@
 // frontend/src/app/subjects/[subject]/[topic]/page.tsx
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { TrackTopicVisit } from "@/components/dashboard/TrackTopicVisit";
 import { TopicReader } from "@/components/subjects/TopicReader";
 import { allTopicParams, getTopicContent, getTopicRef } from "@/lib/subjects-data";
 
@@ -24,11 +25,15 @@ export default async function TopicPage({ params }: Props) {
   const content = getTopicContent(subject, topic);
 
   return (
-    <TopicReader
-      subject={ref.subject}
-      chapter={ref.chapter}
-      topic={ref.topic}
-      content={content}
-    />
+    <>
+      {/* এই টপিক খোলা হয়েছে বলে মনে রাখে (Dashboard-এর "পড়া চালিয়ে যান"-এর জন্য) */}
+      <TrackTopicVisit subjectSlug={ref.subject.slug} topicSlug={ref.topic.slug} />
+      <TopicReader
+        subject={ref.subject}
+        chapter={ref.chapter}
+        topic={ref.topic}
+        content={content}
+      />
+    </>
   );
 }
