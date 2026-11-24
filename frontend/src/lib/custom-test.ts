@@ -73,25 +73,30 @@ type SessionInput = {
   mode: ExamMode;
   durationMin: number;
   questionIds: string[];
+  // true হলে দেওয়া ক্রমেই প্রশ্ন ও অপশন থাকে (বিগত বছরের মূল প্রশ্নপত্রের জন্য), নইলে এলোমেলো
+  keepOrder?: boolean;
 };
 
-// প্রশ্নের আইডির তালিকা থেকে নতুন পরীক্ষা তৈরি (প্রশ্ন ও অপশনের ক্রম এলোমেলো, কোনো প্রশ্ন দুবার নয়)
+// প্রশ্নের আইডির তালিকা থেকে নতুন পরীক্ষা তৈরি (কোনো প্রশ্ন দুবার নয়)
 export function sessionFromQuestionIds(input: SessionInput): ExamSession | null {
   const ids = Array.from(new Set(input.questionIds)).filter(
     (id) => getQuestionById(id) !== undefined,
   );
   if (ids.length === 0) return null;
 
+  const ordered = input.keepOrder ? ids : shuffle(ids);
   const now = Date.now();
+
   return {
     title: input.title,
     mode: input.mode,
     durationSec: input.durationMin * 60,
     startedAt: now,
     endsAt: now + input.durationMin * 60 * 1000,
-    questions: shuffle(ids).map((id) => {
+    questions: ordered.map((id) => {
       const question = getQuestionById(id)!;
-      return { id, optionOrder: shuffle(question.options.map((_, index) => index)) };
+      const indexes = question.options.map((_, index) => index);
+      return { id, optionOrder: input.keepOrder ? indexes : shuffle(indexes) };
     }),
     answers: {},
     flags: [],

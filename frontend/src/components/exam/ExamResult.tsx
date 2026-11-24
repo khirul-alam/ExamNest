@@ -6,8 +6,17 @@ import { useState } from "react";
 import { BookOpen, CheckCircle2, Flag, SkipForward, XCircle } from "lucide-react";
 import { ReportErrorModal } from "@/components/subjects/ReportErrorModal";
 import { getQuestionById } from "@/lib/exam-data";
-import { evaluate, formatClock, MAX_VIOLATIONS, PASS_PERCENT, type ExamSession } from "@/lib/exam-utils";
+import {
+  evaluate,
+  formatClock,
+  MARK_WRONG,
+  MAX_VIOLATIONS,
+  PASS_PERCENT,
+  type ExamSession,
+} from "@/lib/exam-utils";
+import { toBanglaDigits } from "@/lib/format";
 import { optionLabels } from "@/lib/mcq";
+import { getQuestionSources } from "@/lib/previous-questions-data";
 import { toBanglaNumber } from "@/lib/pricing";
 import { getSubject, getTopicRef } from "@/lib/subjects-data";
 
@@ -23,7 +32,7 @@ type Props = {
 // শতকরা অনুযায়ী মূল্যায়নের স্তর
 const benchmarks = [
   { min: 0, range: "৬০%-এর নিচে", label: "আরও অনুশীলন করুন", color: "#dc2626" },
-  { min: 60, range: "৬০%–৬৯%", label: "পাশ", color: "#0891b2" },
+  { min: 60, range: "৬০%–৬৯%", label: "পাস", color: "#0891b2" },
   { min: 70, range: "৭০%–৭৯%", label: "ভালো", color: "#2563eb" },
   { min: 80, range: "৮০%–৮৯%", label: "খুব ভালো", color: "#d97706" },
   { min: 90, range: "৯০%+", label: "অসাধারণ", color: "#0d6e4f" },
@@ -41,6 +50,22 @@ export function ExamResult({ session, reason, finishedAt, onRetry }: Props) {
     Math.round((finishedAt - session.startedAt) / 1000),
   );
   const currentLevel = [...benchmarks].reverse().find((b) => stats.percent >= b.min)!;
+
+  // বিষয়ভিত্তিক ফলাফল: প্রতিটি বিষয়ে কতটির মধ্যে কতটি সঠিক
+  const bySubject = new Map<string, { total: number; correct: number; wrong: number }>();
+  for (const instance of session.questions) {
+    const q = getQuestionById(instance.id);
+    if (!q) continue;
+    const row = bySubject.get(q.subjectSlug) ?? { total: 0, correct: 0, wrong: 0 };
+    row.total += 1;
+    const chosen = session.answers[instance.id];
+    if (chosen !== undefined) {
+      if (chosen === q.correctIndex) row.correct += 1;
+      else row.wrong += 1;
+    }
+    bySubject.set(q.subjectSlug, row);
+  }
+  const subjectRows = Array.from(bySubject.entries());
 
   const cards = [
     { label: "সঠিক", value: toBanglaNumber(stats.correct), icon: "✅", className: "text-emerald-600" },
@@ -82,6 +107,11 @@ export function ExamResult({ session, reason, finishedAt, onRetry }: Props) {
         <div className="my-4 font-mono text-4xl font-bold">
           {toBanglaNumber(Math.round(stats.score * 100) / 100)} / {toBanglaNumber(stats.total)}
         </div>
+        {stats.wrong > 0 && (
+          <p className="mb-1 text-xs text-red-600">
+            নেগেটিভ মার্কিংয়ে কাটা গেছে: −{toBanglaNumber(Math.abs(MARK_WRONG) * stats.wrong)} নম্বর
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           পাস মার্ক {toBanglaNumber(PASS_PERCENT)}% · র‍্যাঙ্ক সার্ভারে ফলাফল জমা হওয়ার পর দেখা যাবে
         </p>
@@ -96,6 +126,33 @@ export function ExamResult({ session, reason, finishedAt, onRetry }: Props) {
           ))}
         </div>
       </div>
+
+      {/* বিষয়ভিত্তিক ফলাফল */}
+      <section className="mb-6 rounded-xl border border-border bg-card p-5">
+        <h2 className="mb-3 font-display font-bold">বিষয়ভিত্তিক ফলাফল</h2>
+        <ul className="space-y-3">
+          {subjectRows.map(([slug, row]) => {
+            const percent = row.total ? Math.round((row.correct / row.total) * 100) : 0;
+            return (
+              <li key={slug}>
+                <div className="mb-1 flex items-center justify-between text-sm">
+                  <span>{getSubject(slug)?.name ?? slug}</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    সঠিক {toBanglaNumber(row.correct)}/{toBanglaNumber(row.total)}
+                    {row.wrong > 0 && ` · ভুল ${toBanglaNumber(row.wrong)}`}
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
       {/* মূল্যায়ন নির্দেশিকা */}
       <section className="mb-6 rounded-xl border border-border bg-card p-5">
@@ -161,6 +218,8 @@ export function ExamResult({ session, reason, finishedAt, onRetry }: Props) {
           const skipped = chosen === undefined;
           const correct = chosen === q.correctIndex;
           const topicRef = getTopicRef(q.subjectSlug, q.topicSlug);
+          // বিগত বছরের প্রশ্ন হলে মূল পরীক্ষার উৎস
+          const sources = getQuestionSources(q.id);
 
           return (
             <div key={instance.id} className="rounded-xl border border-border bg-card p-4">
@@ -228,6 +287,19 @@ export function ExamResult({ session, reason, finishedAt, onRetry }: Props) {
                     q.topicName
                   )}
                 </p>
+                {sources.length > 0 && (
+                  <p>
+                    <strong className="text-foreground">মূল উৎস:</strong>{" "}
+                    {sources
+                      .slice(0, 3)
+                      .map(
+                        (s) =>
+                          `${s.exam.organization} · ${s.exam.post} · ${toBanglaDigits(s.exam.year)}`,
+                      )
+                      .join(" | ")}
+                    {sources.length > 3 && ` (+${toBanglaNumber(sources.length - 3)}টি)`}
+                  </p>
+                )}
               </div>
 
               <button
@@ -252,7 +324,7 @@ export function ExamResult({ session, reason, finishedAt, onRetry }: Props) {
           href="/model-test"
           className="flex-1 rounded-xl border border-border py-3 text-center font-semibold hover:bg-muted"
         >
-          মডেল টেস্ট তালিকা
+          মডেল টেস্ট পেজ
         </Link>
       </div>
 

@@ -1,4 +1,5 @@
 // frontend/src/lib/exam-data.ts
+import { pyqQuestions } from "@/lib/pyq-questions";
 
 // ⚠️ এই ফাইলের সব ডাটা ডেমো। প্রশ্ন ভান্ডার ও মডেল টেস্ট পরে ডাটাবেজ থেকে আসবে।
 
@@ -14,7 +15,8 @@ export type ExamQuestion = {
   bookReference?: string;
 };
 
-export const questionPool: ExamQuestion[] = [
+// সাধারণ অনুশীলনের প্রশ্ন
+const baseQuestions: ExamQuestion[] = [
   {
     id: "e1",
     text: "বাংলাদেশের মুক্তিযুদ্ধ কত সালে সংঘটিত হয়?",
@@ -172,6 +174,10 @@ export const questionPool: ExamQuestion[] = [
     explanation: "জাতিসংঘের সদর দপ্তর যুক্তরাষ্ট্রের নিউইয়র্কে।",
   },
 ];
+
+// কেন্দ্রীয় প্রশ্ন ভান্ডার: সাধারণ প্রশ্ন ও বিগত বছরের প্রশ্ন একই জায়গায়।
+// একটি প্রশ্ন একাধিক পরীক্ষার সাথে যুক্ত হলেও এখানে একবারই থাকে।
+export const questionPool: ExamQuestion[] = [...baseQuestions, ...pyqQuestions];
 
 export function getQuestionById(id: string): ExamQuestion | undefined {
   return questionPool.find((q) => q.id === id);

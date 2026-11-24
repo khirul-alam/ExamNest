@@ -1,178 +1,166 @@
 // frontend/src/lib/previous-questions-data.ts
+import { getQuestionById, type ExamQuestion } from "@/lib/exam-data";
 
-// ⚠️ প্রশ্ন ও উত্তর সত্য তথ্যের ডেমো, কিন্তু পরীক্ষার ধরন, সাল ও "কতবার এসেছে" সংখ্যা ডেমো।
-// যাচাই ছাড়া প্রকাশ করা যাবে না। আসল ডাটা পরে Admin Panel থেকে আসবে।
+// ⚠️ পরীক্ষার নাম, পদ, সাল এবং কোন প্রশ্ন কোন পরীক্ষায় এসেছে, সবই ডেমো।
+// বাস্তব প্রতিষ্ঠানের নাম শুধু শ্রেণি বোঝাতে ব্যবহৃত। যাচাই ছাড়া প্রকাশ করা যাবে না।
+// আসল ডাটা পরে Admin Panel থেকে আসবে।
 
-export const examTypes = ["BCS", "Bank Job", "NTRCA", "Primary Teacher", "Railway"] as const;
-export type ExamType = (typeof examTypes)[number];
+// প্রতিষ্ঠানের তালিকা (প্রোফাইলের "লক্ষ্য পরীক্ষা"-তেও এটি ব্যবহৃত হয়)
+export const examTypes = [
+  "BCS",
+  "BADC",
+  "NTRCA",
+  "Bank Job",
+  "Primary Teacher",
+  "Railway",
+] as const;
 
-export type PreviousQuestionRecord = {
+export type Organization = (typeof examTypes)[number];
+
+// একটি পরীক্ষা: প্রশ্ন নেই, শুধু প্রশ্নের আইডির তালিকা (মূল প্রশ্নপত্রের ক্রমে)
+export type PyqExam = {
   id: string;
-  question: string;
-  options: string[]; // ঠিক ৪টি
-  correctIndex: number;
-  explanation: string;
-  examType: ExamType;
+  name: string;
+  organization: Organization;
+  post: string;
   year: number;
-  timesAsked: number; // এই প্রশ্ন কতবার এসেছে
-  subjectSlug: string;
-  topicSlug?: string;
+  kind: string;
+  questionIds: string[];
 };
 
-export const previousQuestions: PreviousQuestionRecord[] = [
+export const pyqExams: PyqExam[] = [
   {
-    id: "py1",
-    question: "বাংলাদেশের সংবিধানে মোট কয়টি অনুচ্ছেদ রয়েছে?",
-    options: ["১৫০", "১৫৩", "১৫৬", "১৬০"],
-    correctIndex: 1,
-    explanation: "বাংলাদেশের সংবিধানে মোট ১৫৩টি অনুচ্ছেদ রয়েছে।",
-    examType: "BCS",
-    year: 2019,
-    timesAsked: 5,
-    subjectSlug: "bangladesh-affairs",
-    topicSlug: "constitution-principles",
-  },
-  {
-    id: "py2",
-    question: "বাংলাদেশের জাতীয় কবি কে?",
-    options: ["রবীন্দ্রনাথ ঠাকুর", "কাজী নজরুল ইসলাম", "জসীমউদ্দীন", "জীবনানন্দ দাশ"],
-    correctIndex: 1,
-    explanation: "কাজী নজরুল ইসলাম বাংলাদেশের জাতীয় কবি।",
-    examType: "Primary Teacher",
+    id: "bcs-2022-admin",
+    name: "BCS প্রিলিমিনারি ২০২২ — প্রশাসন ক্যাডার (ডেমো)",
+    organization: "BCS",
+    post: "প্রশাসন ক্যাডার",
     year: 2022,
-    timesAsked: 4,
-    subjectSlug: "bangla-language-literature",
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py1", "py4", "py11", "py13", "py3", "py21"],
   },
   {
-    id: "py3",
-    question: "পৃথিবীর সবচেয়ে বড় মহাসাগর কোনটি?",
-    options: ["আটলান্টিক", "ভারত", "প্রশান্ত", "উত্তর"],
-    correctIndex: 2,
-    explanation: "প্রশান্ত মহাসাগর পৃথিবীর সবচেয়ে বড় ও গভীরতম মহাসাগর।",
-    examType: "Bank Job",
+    id: "bcs-2022-tech",
+    name: "BCS প্রিলিমিনারি ২০২২ — টেকনিক্যাল ক্যাডার (ডেমো)",
+    organization: "BCS",
+    post: "টেকনিক্যাল ক্যাডার",
+    year: 2022,
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py9", "py20", "py4", "py17", "py19"],
+  },
+  {
+    id: "bcs-2021-admin",
+    name: "BCS প্রিলিমিনারি ২০২১ — প্রশাসন ক্যাডার (ডেমো)",
+    organization: "BCS",
+    post: "প্রশাসন ক্যাডার",
     year: 2021,
-    timesAsked: 3,
-    subjectSlug: "geography-environment",
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py4", "py5", "py1", "py12", "py23"],
   },
   {
-    id: "py4",
-    question: "জাতিসংঘ প্রতিষ্ঠিত হয় কত সালে?",
-    options: ["১৯৪৩", "১৯৪৫", "১৯৪৮", "১৯৫০"],
-    correctIndex: 1,
-    explanation: "১৯৪৫ সালের ২৪ অক্টোবর জাতিসংঘ আনুষ্ঠানিকভাবে যাত্রা শুরু করে।",
-    examType: "BCS",
+    id: "badc-2022-ad",
+    name: "BADC সহকারী পরিচালক MCQ ২০২২ (ডেমো)",
+    organization: "BADC",
+    post: "সহকারী পরিচালক",
+    year: 2022,
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py1", "py11", "py13", "py8", "py22"],
+  },
+  {
+    id: "badc-2022-office",
+    name: "BADC অফিস সহায়ক MCQ ২০২২ (ডেমো)",
+    organization: "BADC",
+    post: "অফিস সহায়ক",
+    year: 2022,
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py2", "py14", "py15", "py16", "py10"],
+  },
+  {
+    id: "badc-2023-ad",
+    name: "BADC সহকারী পরিচালক MCQ ২০২৩ (ডেমো)",
+    organization: "BADC",
+    post: "সহকারী পরিচালক",
+    year: 2023,
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py4", "py5", "py18", "py7", "py21"],
+  },
+  {
+    id: "ntrca-2023",
+    name: "NTRCA সহকারী শিক্ষক নিবন্ধন ২০২৩ (ডেমো)",
+    organization: "NTRCA",
+    post: "সহকারী শিক্ষক",
+    year: 2023,
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py5", "py12", "py2", "py23", "py22"],
+  },
+  {
+    id: "ntrca-2021",
+    name: "NTRCA সহকারী শিক্ষক নিবন্ধন ২০২১ (ডেমো)",
+    organization: "NTRCA",
+    post: "সহকারী শিক্ষক",
     year: 2021,
-    timesAsked: 6,
-    subjectSlug: "international-affairs",
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py12", "py2", "py8", "py19", "py4"],
   },
   {
-    id: "py5",
-    question: "বাংলাদেশ কত সালে জাতিসংঘের সদস্যপদ লাভ করে?",
-    options: ["১৯৭২", "১৯৭৩", "১৯৭৪", "১৯৭৫"],
-    correctIndex: 2,
-    explanation: "১৯৭৪ সালের ১৭ সেপ্টেম্বর বাংলাদেশ জাতিসংঘের সদস্যপদ পায়।",
-    examType: "NTRCA",
-    year: 2023,
-    timesAsked: 4,
-    subjectSlug: "international-affairs",
-  },
-  {
-    id: "py6",
-    question: "মানবদেহের সবচেয়ে বড় অঙ্গ কোনটি?",
-    options: ["যকৃৎ", "ফুসফুস", "ত্বক", "হৃৎপিণ্ড"],
-    correctIndex: 2,
-    explanation: "ত্বক মানবদেহের সবচেয়ে বড় অঙ্গ।",
-    examType: "Railway",
-    year: 2018,
-    timesAsked: 2,
-    subjectSlug: "general-science",
-  },
-  {
-    id: "py7",
-    question: "DNA-এর পূর্ণরূপ কী?",
-    options: [
-      "Deoxyribonucleic Acid",
-      "Diribonucleic Acid",
-      "Deoxyribose Nitrogen Acid",
-      "Dual Nucleic Acid",
-    ],
-    correctIndex: 0,
-    explanation: "DNA = Deoxyribonucleic Acid।",
-    examType: "Primary Teacher",
-    year: 2024,
-    timesAsked: 1,
-    subjectSlug: "general-science",
-  },
-  {
-    id: "py8",
-    question: "Antonym of 'Generous' is —",
-    options: ["Kind", "Stingy", "Rich", "Brave"],
-    correctIndex: 1,
-    explanation: "'Generous'-এর বিপরীত শব্দ 'Stingy' (কৃপণ)।",
-    examType: "Bank Job",
+    id: "bank-2022",
+    name: "ব্যাংক জব — সিনিয়র অফিসার ২০২২ (ডেমো)",
+    organization: "Bank Job",
+    post: "সিনিয়র অফিসার",
     year: 2022,
-    timesAsked: 3,
-    subjectSlug: "english-language-literature",
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py3", "py8", "py6", "py10"],
   },
   {
-    id: "py9",
-    question: "HTML-এর পূর্ণরূপ কী?",
-    options: [
-      "HyperText Markup Language",
-      "High Text Machine Language",
-      "HyperText Markdown Language",
-      "Home Tool Markup Language",
-    ],
-    correctIndex: 0,
-    explanation: "HTML = HyperText Markup Language, ওয়েবপেজ তৈরির মার্কআপ ভাষা।",
-    examType: "BCS",
-    year: 2023,
-    timesAsked: 2,
-    subjectSlug: "computer-it",
+    id: "bank-2024",
+    name: "ব্যাংক জব — অফিসার (ক্যাশ) ২০২৪ (ডেমো)",
+    organization: "Bank Job",
+    post: "অফিসার (ক্যাশ)",
+    year: 2024,
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py17", "py18", "py9", "py20", "py1"],
   },
   {
-    id: "py10",
-    question: "৪৮-এর ২৫% কত?",
-    options: ["১০", "১২", "১৪", "১৬"],
-    correctIndex: 1,
-    explanation: "৪৮ × ২৫ ÷ ১০০ = ১২।",
-    examType: "Railway",
+    id: "primary-2024",
+    name: "প্রাইমারি সহকারী শিক্ষক ২০২৪ (ডেমো)",
+    organization: "Primary Teacher",
+    post: "সহকারী শিক্ষক",
+    year: 2024,
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py2", "py7", "py14", "py15", "py16", "py11"],
+  },
+  {
+    id: "railway-2019",
+    name: "রেলওয়ে সহকারী স্টেশন মাস্টার ২০১৯ (ডেমো)",
+    organization: "Railway",
+    post: "সহকারী স্টেশন মাস্টার",
     year: 2019,
-    timesAsked: 1,
-    subjectSlug: "mathematical-reasoning",
-  },
-  {
-    id: "py11",
-    question: "প্রথম আন্তর্জাতিক মাতৃভাষা দিবস কত সালে পালিত হয়?",
-    options: ["১৯৯৯", "২০০০", "২০০১", "২০০২"],
-    correctIndex: 1,
-    explanation: "২০০০ সালের ২১ ফেব্রুয়ারি প্রথমবার আন্তর্জাতিক মাতৃভাষা দিবস পালিত হয়।",
-    examType: "BCS",
-    year: 2022,
-    timesAsked: 6,
-    subjectSlug: "bangladesh-affairs",
-    topicSlug: "language-movement",
-  },
-  {
-    id: "py12",
-    question: "আয়তনে বাংলাদেশের বৃহত্তম জেলা কোনটি?",
-    options: ["খুলনা", "চট্টগ্রাম", "রাঙ্গামাটি", "সিলেট"],
-    correctIndex: 2,
-    explanation: "আয়তনে বাংলাদেশের সবচেয়ে বড় জেলা রাঙ্গামাটি।",
-    examType: "NTRCA",
-    year: 2020,
-    timesAsked: 3,
-    subjectSlug: "geography-environment",
-  },
-  {
-    id: "py13",
-    question: "সুন্দরবন কত সালে ইউনেস্কোর বিশ্ব ঐতিহ্যের তালিকায় অন্তর্ভুক্ত হয়?",
-    options: ["১৯৮৫", "১৯৯০", "১৯৯৭", "২০০৩"],
-    correctIndex: 2,
-    explanation: "১৯৯৭ সালে সুন্দরবন ইউনেস্কোর বিশ্ব ঐতিহ্যের তালিকায় স্থান পায়।",
-    examType: "BCS",
-    year: 2024,
-    timesAsked: 5,
-    subjectSlug: "geography-environment",
+    kind: "MCQ পরীক্ষা",
+    questionIds: ["py6", "py10", "py19", "py14"],
   },
 ];
+
+export function getPyqExam(id: string): PyqExam | undefined {
+  return pyqExams.find((exam) => exam.id === id);
+}
+
+// একটি প্রশ্ন কোন পরীক্ষায় কত নম্বর প্রশ্ন হিসেবে এসেছে
+export type QuestionSource = { exam: PyqExam; order: number };
+
+const sourceIndex = new Map<string, QuestionSource[]>();
+for (const exam of pyqExams) {
+  exam.questionIds.forEach((questionId, index) => {
+    const list = sourceIndex.get(questionId) ?? [];
+    list.push({ exam, order: index + 1 });
+    sourceIndex.set(questionId, list);
+  });
+}
+
+// প্রশ্নের সব উৎস (একই প্রশ্ন একাধিক পরীক্ষায় থাকলে একাধিক)
+export function getQuestionSources(questionId: string): QuestionSource[] {
+  return sourceIndex.get(questionId) ?? [];
+}
+
+// কমপক্ষে একটি পরীক্ষায় থাকা স্বতন্ত্র প্রশ্ন (একই প্রশ্ন একবারই গোনা)
+export const previousQuestions: ExamQuestion[] = Array.from(sourceIndex.keys())
+  .map((id) => getQuestionById(id))
+  .filter((question): question is ExamQuestion => question !== undefined);

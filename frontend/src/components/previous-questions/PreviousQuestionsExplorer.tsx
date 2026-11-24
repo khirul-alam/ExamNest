@@ -1,233 +1,280 @@
 // frontend/src/components/previous-questions/PreviousQuestionsExplorer.tsx
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { RotateCcw, Search } from "lucide-react";
-import { PreviousQuestionCard } from "@/components/subjects/PreviousQuestionCard";
+import { Lock } from "lucide-react";
+import { MostRepeated } from "./MostRepeated";
+import { PyqBrowse } from "./PyqBrowse";
+import { PyqExamBuilder } from "./PyqExamBuilder";
+import { PyqExamList } from "./PyqExamList";
+import { PyqFilters } from "./PyqFilters";
+import { PyqReadMode } from "./PyqReadMode";
+import { useQuestionProgress } from "./useQuestionProgress";
+import { useStartSession } from "@/components/model-test/useStartSession";
 import { ReportErrorModal } from "@/components/subjects/ReportErrorModal";
-import { toBanglaDigits } from "@/lib/format";
-import { getFrequency, type Frequency } from "@/lib/mcq";
-import { examTypes, previousQuestions } from "@/lib/previous-questions-data";
+import { useAuthPreview } from "@/components/providers/AuthPreviewProvider";
+import { estimateDurationMin, getQuestionHistory } from "@/lib/analytics";
+import { sessionFromQuestionIds } from "@/lib/custom-test";
+import { getQuestionById } from "@/lib/exam-data";
+import {
+  examTypes,
+  getPyqExam,
+  previousQuestions,
+  pyqExams,
+  type PyqExam,
+} from "@/lib/previous-questions-data";
 import { toBanglaNumber } from "@/lib/pricing";
-import { getSubject, getTopicRef } from "@/lib/subjects-data";
+import { buildSingleExamSession } from "@/lib/pyq-exam";
+import {
+  ALL,
+  applyFilterChange,
+  emptyFilters,
+  getFilterOptions,
+  getVisibleExams,
+  getVisibleQuestionIds,
+  type PyqFilterKey,
+  type PyqFilters as PyqFilterState,
+} from "@/lib/pyq-filters";
+import { useAttempts } from "@/lib/useAttempts";
 
-type FrequencyFilter = "all" | Frequency["level"];
+type Tab = "read" | "exam";
 
-const PAGE_SIZE = 10;
+// ভুল প্রশ্ন নিয়ে পরীক্ষায় একবারে সর্বোচ্চ এতগুলো প্রশ্ন
+const WRONG_PRACTICE_MAX = 20;
 
-const frequencyOptions: { value: FrequencyFilter; label: string }[] = [
-  { value: "all", label: "সব Frequency" },
-  { value: "very", label: "🔥 অত্যন্ত গুরুত্বপূর্ণ (৫+ বার)" },
-  { value: "important", label: "⭐ গুরুত্বপূর্ণ (৩-৪ বার)" },
-  { value: "moderate", label: "📌 মাঝারি (১-২ বার)" },
-];
-
-// ফিল্টার তালিকার জন্য ডাটা থেকে অনন্য সাল ও বিষয় বের করা
-const years = Array.from(new Set(previousQuestions.map((q) => q.year))).sort((a, b) => b - a);
-const subjectSlugs = Array.from(new Set(previousQuestions.map((q) => q.subjectSlug)));
-
-const selectClass =
-  "w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-primary";
+function SectionTitle({ number, title, subtitle }: { number: string; title: string; subtitle?: string }) {
+  return (
+    <div className="mb-4">
+      <h2 className="font-display text-xl font-bold">
+        <span className="mr-2 font-mono text-primary">{number}</span>
+        {title}
+      </h2>
+      {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
+    </div>
+  );
+}
 
 export function PreviousQuestionsExplorer() {
-  const [examType, setExamType] = useState("all");
-  const [year, setYear] = useState("all");
-  const [subject, setSubject] = useState("all");
-  const [frequency, setFrequency] = useState<FrequencyFilter>("all");
+  const { isLoggedIn, isReady } = useAuthPreview();
+  const { attempts } = useAttempts();
+  const progress = useQuestionProgress();
+  const startSession = useStartSession();
+
+  const [filters, setFilters] = useState<PyqFilterState>(emptyFilters);
   const [search, setSearch] = useState("");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [tab, setTab] = useState<Tab>("read");
   const [reportTarget, setReportTarget] = useState<string | null>(null);
+  const [needLogin, setNeedLogin] = useState(false);
 
-  // ফিল্টার বদলালে তালিকা আবার শুরু থেকে দেখানো হবে
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [examType, year, subject, frequency, search]);
+  // লগইন করা থাকলেই পড়া, বুকমার্ক ও পরীক্ষা চলে
+  const canAct = isReady && isLoggedIn;
+  const showLock = isReady && !isLoggedIn;
 
-  const filtered = useMemo(() => {
+  const options = useMemo(() => getFilterOptions(filters), [filters]);
+  const exams = useMemo(() => getVisibleExams(filters), [filters]);
+  const baseIds = useMemo(() => getVisibleQuestionIds(filters), [filters]);
+
+  // সার্চ শব্দ প্রশ্ন, অপশন বা ব্যাখ্যায় মেলে কিনা
+  const scopeIds = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return previousQuestions
-      .filter((q) => {
-        if (examType !== "all" && q.examType !== examType) return false;
-        if (year !== "all" && String(q.year) !== year) return false;
-        if (subject !== "all" && q.subjectSlug !== subject) return false;
-        if (frequency !== "all" && getFrequency(q.timesAsked).level !== frequency) return false;
-        if (term) {
-          const haystack = [q.question, ...q.options, q.explanation].join(" ").toLowerCase();
-          if (!haystack.includes(term)) return false;
-        }
-        return true;
-      })
-      // নতুন সাল আগে, একই সালে বেশি বার আসা প্রশ্ন আগে
-      .sort((a, b) => b.year - a.year || b.timesAsked - a.timesAsked);
-  }, [examType, year, subject, frequency, search]);
+    if (!term) return baseIds;
+    return baseIds.filter((id) => {
+      const question = getQuestionById(id);
+      if (!question) return false;
+      return [question.text, ...question.options, question.explanation]
+        .join(" ")
+        .toLowerCase()
+        .includes(term);
+    });
+  }, [baseIds, search]);
 
-  const shown = filtered.slice(0, visibleCount);
-  const hasFilter =
-    examType !== "all" || year !== "all" || subject !== "all" || frequency !== "all" || search !== "";
+  const wrongSet = useMemo(() => getQuestionHistory(attempts).wrong, [attempts]);
+  const singleExam = filters.exam !== ALL ? (getPyqExam(filters.exam) ?? null) : null;
 
-  const resetFilters = () => {
-    setExamType("all");
-    setYear("all");
-    setSubject("all");
-    setFrequency("all");
-    setSearch("");
+  const hasFilter = search !== "" || Object.values(filters).some((value) => value !== ALL);
+  const organizationCount = examTypes.filter((org) =>
+    pyqExams.some((exam) => exam.organization === org),
+  ).length;
+  const yearCount = new Set(pyqExams.map((exam) => exam.year)).size;
+
+  const changeFilter = (key: PyqFilterKey, value: string) =>
+    setFilters((prev) => applyFilterChange(prev, key, value));
+
+  const scrollToModes = () =>
+    document.getElementById("pyq-modes")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // কোনো পরীক্ষার "প্রশ্ন পড়ুন" চাপলে সেই পরীক্ষা বেছে পড়ার মোডে যাওয়া
+  const handleReadExam = (examId: string) => {
+    setFilters((prev) => applyFilterChange(prev, "exam", examId));
+    setTab("read");
+    // ফিল্টার বসার পর স্ক্রল করার জন্য সামান্য অপেক্ষা
+    setTimeout(scrollToModes, 50);
   };
 
-  const chipClass = (active: boolean) =>
-    `rounded-full border px-3 py-1.5 text-sm transition-colors ${
-      active
-        ? "border-primary bg-primary/10 text-primary"
-        : "border-border hover:border-primary/50"
-    }`;
+  const handleTakeExam = (exam: PyqExam) => {
+    const session = buildSingleExamSession(exam);
+    if (session) startSession(session);
+  };
+
+  // ভুল করা প্রশ্ন নিয়ে অনুশীলন শুরু
+  const handleTakeWrong = (ids: string[]) => {
+    const picked = ids.slice(0, WRONG_PRACTICE_MAX);
+    const session = sessionFromQuestionIds({
+      title: "বিগত প্রশ্ন — ভুল করা প্রশ্ন",
+      mode: "practice",
+      durationMin: estimateDurationMin(picked.length),
+      questionIds: picked,
+    });
+    if (session) startSession(session);
+  };
+
+  const overview = [
+    { label: "স্বতন্ত্র প্রশ্ন", value: previousQuestions.length },
+    { label: "পরীক্ষা", value: pyqExams.length },
+    { label: "প্রতিষ্ঠান", value: organizationCount },
+    { label: "বছর", value: yearCount },
+  ];
 
   return (
-    <div>
-      {/* পরীক্ষার ধরন */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        <button onClick={() => setExamType("all")} className={chipClass(examType === "all")}>
-          সব পরীক্ষা ({toBanglaNumber(previousQuestions.length)})
-        </button>
-        {examTypes.map((type) => (
-          <button
-            key={type}
-            onClick={() => setExamType(type)}
-            className={chipClass(examType === type)}
-          >
-            {type} ({toBanglaNumber(previousQuestions.filter((q) => q.examType === type).length)})
-          </button>
-        ))}
-      </div>
+    <div className="space-y-12">
+      {/* ০১: প্রশ্নভান্ডারের সারাংশ */}
+      <section>
+        <SectionTitle number="০১" title="প্রশ্নভান্ডার" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {overview.map((item) => (
+            <div key={item.label} className="rounded-xl border border-border bg-card p-4 text-center">
+              <p className="font-mono text-2xl font-bold text-primary">{toBanglaNumber(item.value)}</p>
+              <p className="text-xs text-muted-foreground">{item.label}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs">
+          পরীক্ষার নাম, পদ, সাল এবং কোন প্রশ্ন কোন পরীক্ষায় এসেছে, সবই ডেমো। প্রশ্ন ও উত্তর সত্য
+          তথ্যের, তবে এগুলো আসল প্রশ্নপত্রের উৎস নয়। আসল ডাটা Admin Panel থেকে আসবে।
+        </p>
+      </section>
 
-      {/* সার্চ ও অন্যান্য ফিল্টার */}
-      <div className="mb-6 grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="relative sm:col-span-2 lg:col-span-4">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="প্রশ্ন, অপশন বা ব্যাখ্যায় খুঁজুন..."
-            aria-label="প্রশ্ন খুঁজুন"
-            className={`${selectClass} pl-9`}
-          />
+      {/* ০২: খোঁজা ও ফিল্টার */}
+      <section>
+        <SectionTitle
+          number="০২"
+          title="খুঁজুন ও ফিল্টার করুন"
+          subtitle="ফিল্টারগুলো পরস্পর-সংযুক্ত: একটি বাছলে বাকিগুলোর অপশন ছোট হয়ে আসে"
+        />
+        <PyqFilters
+          filters={filters}
+          options={options}
+          search={search}
+          hasFilter={hasFilter}
+          examCount={exams.length}
+          questionCount={scopeIds.length}
+          onChange={changeFilter}
+          onSearch={setSearch}
+          onReset={() => {
+            setFilters(emptyFilters);
+            setSearch("");
+          }}
+        />
+      </section>
+
+      {/* ০৩: বছর ও প্রতিষ্ঠান অনুযায়ী */}
+      <section>
+        <SectionTitle number="০৩" title="বছর ও প্রতিষ্ঠান অনুযায়ী দেখুন" />
+        <PyqBrowse
+          selectedYear={filters.year}
+          selectedOrganization={filters.organization}
+          onPickYear={(year) => changeFilter("year", filters.year === year ? ALL : year)}
+          onPickOrganization={(org) =>
+            changeFilter("organization", filters.organization === org ? ALL : org)
+          }
+        />
+      </section>
+
+      {/* ০৪: পরীক্ষার তালিকা */}
+      <section>
+        <SectionTitle
+          number="০৪"
+          title="পরীক্ষা"
+          subtitle="প্রতিটি পরীক্ষার নিজস্ব পরিচয়: একই প্রতিষ্ঠান ও বছরেও আলাদা পদের আলাদা পরীক্ষা"
+        />
+        <PyqExamList
+          exams={exams}
+          selectedExamId={filters.exam}
+          canAct={canAct}
+          showLock={showLock}
+          readCount={(exam) => exam.questionIds.filter((id) => progress.isRead(id)).length}
+          onRead={handleReadExam}
+          onTake={handleTakeExam}
+        />
+      </section>
+
+      {/* ০৫: পড়া ও পরীক্ষার মোড */}
+      <section id="pyq-modes" className="scroll-mt-24">
+        <SectionTitle number="০৫" title="পড়ুন অথবা পরীক্ষা দিন" />
+
+        <div className="mb-5 flex gap-1 rounded-xl border border-border bg-muted p-1">
+          {(
+            [
+              { id: "read", label: "পড়ার মোড" },
+              { id: "exam", label: "পরীক্ষার মোড" },
+            ] as const
+          ).map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setTab(item.id)}
+              aria-pressed={tab === item.id}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+                tab === item.id ? "bg-card text-primary shadow" : "text-muted-foreground"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
 
-        <select
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
-          aria-label="সাল"
-          className={selectClass}
-        >
-          <option value="all">সব সাল</option>
-          {years.map((y) => (
-            <option key={y} value={y}>
-              {toBanglaDigits(y)}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-          aria-label="বিষয়"
-          className={`${selectClass} lg:col-span-2`}
-        >
-          <option value="all">সব বিষয়</option>
-          {subjectSlugs.map((slug) => (
-            <option key={slug} value={slug}>
-              {getSubject(slug)?.name ?? slug}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={frequency}
-          onChange={(e) => setFrequency(e.target.value as FrequencyFilter)}
-          aria-label="Frequency"
-          className={selectClass}
-        >
-          {frequencyOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
-        <span>{toBanglaNumber(filtered.length)}টি প্রশ্ন পাওয়া গেছে</span>
-        {hasFilter && (
-          <button
-            onClick={resetFilters}
-            className="flex items-center gap-1 text-primary hover:underline"
-          >
-            <RotateCcw size={13} /> ফিল্টার মুছুন
-          </button>
+        {needLogin && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+            <span className="flex items-center gap-2">
+              <Lock size={14} /> এই সুবিধা পেতে লগইন করতে হবে।
+            </span>
+            <span className="flex gap-2">
+              <Link href="/login" className="rounded-md border border-border bg-card px-3 py-1 font-medium">
+                লগইন
+              </Link>
+              <Link href="/register" className="rounded-md bg-primary px-3 py-1 font-medium text-primary-foreground">
+                ফ্রি রেজিস্ট্রেশন
+              </Link>
+            </span>
+          </div>
         )}
-      </div>
 
-      {filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center text-sm text-muted-foreground">
-          এই ফিল্টারে কোনো প্রশ্ন পাওয়া যায়নি।
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {shown.map((q) => {
-            const topicRef = q.topicSlug ? getTopicRef(q.subjectSlug, q.topicSlug) : null;
-            return (
-              <div key={q.id} className="overflow-hidden rounded-xl border border-border bg-card">
-                <PreviousQuestionCard
-                  question={{
-                    id: q.id,
-                    question: q.question,
-                    options: q.options,
-                    correctIndex: q.correctIndex,
-                    explanation: q.explanation,
-                    exam: `${q.examType} (ডেমো)`,
-                    year: toBanglaDigits(q.year),
-                    timesAsked: q.timesAsked,
-                  }}
-                  onReport={setReportTarget}
-                />
-                {/* সংশ্লিষ্ট বিষয় ও টপিকের লিংক */}
-                <div className="border-t border-border bg-muted/50 px-4 py-2 text-xs text-muted-foreground">
-                  বিষয়:{" "}
-                  <Link
-                    href={`/subjects/${q.subjectSlug}`}
-                    className="text-primary hover:underline"
-                  >
-                    {getSubject(q.subjectSlug)?.name}
-                  </Link>
-                  {topicRef && (
-                    <>
-                      {" · "}টপিক:{" "}
-                      <Link
-                        href={`/subjects/${q.subjectSlug}/${topicRef.topic.slug}`}
-                        className="text-primary hover:underline"
-                      >
-                        {topicRef.topic.name}
-                      </Link>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+        {tab === "read" ? (
+          <PyqReadMode
+            ids={scopeIds}
+            singleExam={singleExam}
+            progress={progress}
+            wrongSet={wrongSet}
+            canAct={canAct}
+            showLock={showLock}
+            onNeedLogin={() => setNeedLogin(true)}
+            onReport={setReportTarget}
+            onTakeWrong={handleTakeWrong}
+          />
+        ) : (
+          <PyqExamBuilder canAct={canAct} showLock={showLock} />
+        )}
+      </section>
 
-      {filtered.length > visibleCount && (
-        <button
-          onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-          className="mt-6 w-full rounded-xl border border-border py-3 text-sm font-medium hover:bg-muted"
-        >
-          আরও দেখান
-        </button>
-      )}
+      {/* ০৬: বারবার আসা প্রশ্ন */}
+      <section>
+        <SectionTitle
+          number="০৬"
+          title="বারবার আসা প্রশ্ন"
+          subtitle="যে প্রশ্ন একাধিক পরীক্ষায় এসেছে"
+        />
+        <MostRepeated />
+      </section>
 
       <ReportErrorModal
         open={reportTarget !== null}
