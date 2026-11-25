@@ -32,6 +32,7 @@ import { WrongSavedCard } from "./WrongSavedCard";
 import { RecentHistory } from "@/components/model-test/RecentHistory";
 import { RecommendedPractice } from "@/components/model-test/RecommendedPractice";
 import { useStartSession } from "@/components/model-test/useStartSession";
+import { useQuestionProgress } from "@/components/previous-questions/useQuestionProgress";
 import { useStudyProgress } from "@/components/providers/StudyProgressPreviewProvider";
 import {
   classifySubject,
@@ -75,8 +76,8 @@ const quickLinks = [
   { href: "/profile", label: "প্রোফাইল", icon: User },
 ];
 
-// একবারে সর্বোচ্চ এতগুলো ভুল প্রশ্ন নিয়ে অনুশীলন
-const WRONG_PRACTICE_MAX = 20;
+// একবারে সর্বোচ্চ এতগুলো ভুল বা সংরক্ষিত প্রশ্ন নিয়ে অনুশীলন
+const PRACTICE_MAX = 20;
 // এত দিনের কম বাকি থাকলে "আজকের করণীয়"-তে সতর্কতা
 const URGENT_JOB_DAYS = 3;
 
@@ -85,6 +86,7 @@ const percentText = (value: number | null) =>
 
 export function DashboardView() {
   const studyProgress = useStudyProgress();
+  const questionProgress = useQuestionProgress();
   const { attempts, ready } = useAttempts();
   const today = useToday();
   const { goal, update: updateGoal } = useDailyGoal();
@@ -108,7 +110,7 @@ export function DashboardView() {
   );
 
   // আসল তথ্য পড়া শেষ না হওয়া পর্যন্ত অপেক্ষা
-  if (!ready || !today || !todayIso || !streak) {
+  if (!ready || !questionProgress.ready || !today || !todayIso || !streak) {
     return (
       <div className="flex justify-center py-24">
         <Loader2 className="animate-spin text-primary" />
@@ -130,6 +132,9 @@ export function DashboardView() {
         .filter((topic) => studyProgress.isBookmarked(subject.slug, topic.slug)).length,
     0,
   );
+
+  // সংরক্ষিত প্রশ্ন: সবচেয়ে নতুন সংরক্ষণ আগে
+  const savedQuestionIds = [...questionProgress.bookmarkedIds].reverse();
 
   // সবচেয়ে দুর্বল বিষয় (পর্যাপ্ত উত্তর থাকলে)
   const weakStat = subjectStats
@@ -161,17 +166,21 @@ export function DashboardView() {
     streakAtRisk: streak.current > 0 && !streak.activeToday,
   });
 
-  // ভুল করা প্রশ্ন নিয়ে অনুশীলন শুরু (সাধারণ মোডে, ফুলস্ক্রিন ছাড়া)
-  const handlePracticeWrong = () => {
-    const ids = Array.from(history.wrong).slice(0, WRONG_PRACTICE_MAX);
+  // প্রশ্নের তালিকা নিয়ে অনুশীলন শুরু (সাধারণ মোডে, ফুলস্ক্রিন ছাড়া)
+  const startPractice = (title: string, ids: string[]) => {
+    const picked = ids.slice(0, PRACTICE_MAX);
     const session = sessionFromQuestionIds({
-      title: "ভুল করা প্রশ্ন অনুশীলন",
+      title,
       mode: "practice",
-      durationMin: estimateDurationMin(ids.length),
-      questionIds: ids,
+      durationMin: estimateDurationMin(picked.length),
+      questionIds: picked,
     });
     if (session) startSession(session);
   };
+
+  const handlePracticeWrong = () =>
+    startPractice("ভুল করা প্রশ্ন অনুশীলন", Array.from(history.wrong));
+  const handlePracticeSaved = () => startPractice("সংরক্ষিত প্রশ্ন অনুশীলন", savedQuestionIds);
 
   const stats: Stat[] = [
     {
@@ -281,8 +290,10 @@ export function DashboardView() {
         </div>
         <WrongSavedCard
           wrongCount={history.wrong.size}
+          savedQuestions={savedQuestionIds.length}
           savedTopics={savedTopics}
           onPracticeWrong={handlePracticeWrong}
+          onPracticeSaved={handlePracticeSaved}
         />
 
         <div className="lg:col-span-2">

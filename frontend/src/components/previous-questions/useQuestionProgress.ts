@@ -69,7 +69,17 @@ export function useQuestionProgress() {
     [commit],
   );
 
-  return { ready, isRead, isBookmarked, toggleRead, toggleBookmark, setReadMany };
+  return {
+    ready,
+    // সংরক্ষণের ক্রমে আইডির তালিকা (সবচেয়ে নতুনটি শেষে)
+    readIds: state.read,
+    bookmarkedIds: state.bookmarked,
+    isRead,
+    isBookmarked,
+    toggleRead,
+    toggleBookmark,
+    setReadMany,
+  };
 }
 
 export type QuestionProgressApi = ReturnType<typeof useQuestionProgress>;
