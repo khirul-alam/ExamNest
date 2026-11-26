@@ -21,9 +21,10 @@
   --color-border: var(--border);
   --color-ring: var(--ring);
 
-  --font-sans: var(--font-inter), var(--font-hind), sans-serif;
-  --font-bengali: var(--font-hind), var(--font-inter), sans-serif;
-  --font-display: var(--font-roboto-slab), var(--font-hind), serif;
+  /* মূল বাংলা ফন্ট Noto Sans Bengali; শিরোনামের ইংরেজি অক্ষরে Roboto Slab */
+  --font-sans: var(--font-inter), var(--font-noto-bengali), sans-serif;
+  --font-bengali: var(--font-noto-bengali), var(--font-inter), sans-serif;
+  --font-display: var(--font-roboto-slab), var(--font-noto-bengali), serif;
   --font-mono: var(--font-jetbrains), monospace;
 }
 
